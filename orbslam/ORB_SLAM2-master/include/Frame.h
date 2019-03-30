@@ -37,15 +37,8 @@ namespace ORB_SLAM2
 #define FRAME_GRID_ROWS 48
 #define FRAME_GRID_COLS 64
 
-enum cone_color
-{
-    NONECONE=0,
-    REDCONE=1,
-    BLUECONE=2
-};
-
-typedef std::pair<cv::KeyPoint,std::pair<int,int>> tuple4D; // pair of (kp(x,y),(w,h))
-typedef std::vector<tuple4D> VecYolo; // vector of (kp(x,y),(w,h))
+typedef std::pair<cv::Point2f,cv::Size2i,int> tupleCone; // pair of (kp(x,y),(w,h))
+typedef std::vector<tupleCone> VecYolo; // vector of (kp(x,y),(w,h))
 
 class MapPoint;
 class KeyFrame;
@@ -197,15 +190,23 @@ public:
 
     static bool mbInitialComputations;
 
-    // Cone stuff
+    /* Cone stuff
+    1-RED
+    2-BLUE
+    */
+
     // Yolo output
     VecYolo mYolo;
     // Grid to make the search faster
+    // Problem - maybe the yolo box is bigger than a cell
     std::vector<std::size_t> cGrid[FRAME_GRID_COLS][FRAME_GRID_ROWS];
+    // Corresponds to mvKeys, if cone -> what color
+    std::vector<int> mvKeysCones;
     // Number of Yolo points
     int NYolo;
-    //
+    // fill mvKeysCones with classification
     void AssignORBToYOLO();
+    bool ConeInGrid(const cv::Point2f &p, int &posX, int &posY)
 
 
 private:

@@ -48,7 +48,7 @@ Frame::Frame(const Frame &frame)
      mfScaleFactor(frame.mfScaleFactor), mfLogScaleFactor(frame.mfLogScaleFactor),
      mvScaleFactors(frame.mvScaleFactors), mvInvScaleFactors(frame.mvInvScaleFactors),
      mvLevelSigma2(frame.mvLevelSigma2), mvInvLevelSigma2(frame.mvInvLevelSigma2),
-     mYolo(frame.mYolo), NYolo(frame.NYolo)
+     mYolo(frame.mYolo), NYolo(frame.NYolo), mvKeysCones(frame.mvKeysCones)
 {
     for(int i=0;i<FRAME_GRID_COLS;i++)
         for(int j=0; j<FRAME_GRID_ROWS; j++)
@@ -84,6 +84,7 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
     threadRight.join();
 
     N = mvKeys.size();
+    mvKeysCones.assign(N, 0);
     NYolo = mYolo.size();
 
     if(mvKeys.empty())
@@ -141,6 +142,7 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
     ExtractORB(0,imGray);
 
     N = mvKeys.size();
+    mvKeysCones.assign(N, 0);
     NYolo = mYolo.size();
 
     if(mvKeys.empty())
@@ -198,6 +200,7 @@ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extra
     ExtractORB(0,imGray);
 
     N = mvKeys.size();
+    mvKeysCones.assign(N, 0);
     NYolo = mYolo.size();
 
     if(mvKeys.empty())
@@ -251,16 +254,19 @@ void Frame::AssignORBToYOLO()
             for(size_t k=0, kend=yCell.size(); k<kend; k++)
             {
                 // for every yolo keypoint
-                const tuple4D &tuY = mYolo[yCell[k]];
-                const cv::KeyPoint &kpY = tuY[0];
-                const cv::Point2f &pY = kpYOLO.pt();
-                int up = 
+                const tupleCone &tuY = mYolo[yCell[k]];
+                const cv::Point2f &pY = tuY[0];
+                const cv::Size2i &sY = tuY[1];
+                int ConeType = tuY[2];
+                const cv::Rect recY(pY, sY); 
 
                 for(size_t r=0, rend=fCell.size(); r<rend; r++)
                 {
                     // check if inside the yolo box
                     const cv::KeyPoint &kp = mvKeys[fCell[r]];
-                    
+                    const cv::Point2f &p = kp.pt();
+                    if(p.inside(recY))
+                        mvKeysCones[fCell[r]] = ConeType;
                 }
             }
         }
@@ -287,12 +293,13 @@ void Frame::AssignFeaturesToGrid()
         if(PosInGrid(kp,nGridPosX,nGridPosY))
             mGrid[nGridPosX][nGridPosY].push_back(i);
     }
+
     for (int i = 0; i < NYolo; ++i)
     {
-        const tuple4D &tu = mYolo[i];
-        const cv::KeyPoint &kpYOLO = tu[0];
+        const tupleCone &tu = mYolo[i];
+        const cv::Point2f &kpYOLO = tu[0];
         int nGridPosX, nGridPosY;
-        if(PosInGrid(kpYOLO,nGridPosX,nGridPosY))
+        if(ConeInGrid(kpYOLO,nGridPosX,nGridPosY))
             cGrid[nGridPosX][nGridPosY].push_back(i);
     }
 }
@@ -430,6 +437,18 @@ vector<size_t> Frame::GetFeaturesInArea(const float &x, const float  &y, const f
     }
 
     return vIndices;
+}
+
+bool Frame::ConeInGrid(const cv::Point2f &p, int &posX, int &posY)
+{
+    posX = round((p.x-mnMinX)*mfGridElementWidthInv);
+    posY = round((p.y-mnMinY)*mfGridElementHeightInv);
+
+    //Keypoint's coordinates are undistorted, which could cause to go out of the image
+    if(posX<0 || posX>=FRAME_GRID_COLS || posY<0 || posY>=FRAME_GRID_ROWS)
+        return false;
+
+    return true;
 }
 
 bool Frame::PosInGrid(const cv::KeyPoint &kp, int &posX, int &posY)
