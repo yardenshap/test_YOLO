@@ -37,6 +37,16 @@ namespace ORB_SLAM2
 #define FRAME_GRID_ROWS 48
 #define FRAME_GRID_COLS 64
 
+enum cone_color
+{
+    NONECONE=0,
+    REDCONE=1,
+    BLUECONE=2
+};
+
+typedef std::pair<cv::KeyPoint,std::pair<int,int>> tuple4D; // pair of (kp(x,y),(w,h))
+typedef std::vector<tuple4D> VecYolo; // vector of (kp(x,y),(w,h))
+
 class MapPoint;
 class KeyFrame;
 
@@ -49,13 +59,13 @@ public:
     Frame(const Frame &frame);
 
     // Constructor for stereo cameras.
-    Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeStamp, ORBextractor* extractorLeft, ORBextractor* extractorRight, ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth);
+    Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeStamp, ORBextractor* extractorLeft, ORBextractor* extractorRight, ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, const VecYolo& vYolo);
 
     // Constructor for RGB-D cameras.
-    Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth);
+    Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, const VecYolo& vYolo);
 
     // Constructor for Monocular cameras.
-    Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth);
+    Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, const VecYolo& vYolo);
 
     // Extract ORB on the image. 0 for left image and 1 for right image.
     void ExtractORB(int flag, const cv::Mat &im);
@@ -186,6 +196,16 @@ public:
     static float mnMaxY;
 
     static bool mbInitialComputations;
+
+    // Cone stuff
+    // Yolo output
+    VecYolo mYolo;
+    // Grid to make the search faster
+    std::vector<std::size_t> cGrid[FRAME_GRID_COLS][FRAME_GRID_ROWS];
+    // Number of Yolo points
+    int NYolo;
+    //
+    void AssignORBToYOLO();
 
 
 private:

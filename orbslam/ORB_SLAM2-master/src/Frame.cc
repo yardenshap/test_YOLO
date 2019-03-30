@@ -47,20 +47,23 @@ Frame::Frame(const Frame &frame)
      mpReferenceKF(frame.mpReferenceKF), mnScaleLevels(frame.mnScaleLevels),
      mfScaleFactor(frame.mfScaleFactor), mfLogScaleFactor(frame.mfLogScaleFactor),
      mvScaleFactors(frame.mvScaleFactors), mvInvScaleFactors(frame.mvInvScaleFactors),
-     mvLevelSigma2(frame.mvLevelSigma2), mvInvLevelSigma2(frame.mvInvLevelSigma2)
+     mvLevelSigma2(frame.mvLevelSigma2), mvInvLevelSigma2(frame.mvInvLevelSigma2),
+     mYolo(frame.mYolo), NYolo(frame.NYolo)
 {
     for(int i=0;i<FRAME_GRID_COLS;i++)
         for(int j=0; j<FRAME_GRID_ROWS; j++)
             mGrid[i][j]=frame.mGrid[i][j];
+            cGrid[i][j]=frame.cGrid[i][j];
 
     if(!frame.mTcw.empty())
         SetPose(frame.mTcw);
 }
 
 
-Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeStamp, ORBextractor* extractorLeft, ORBextractor* extractorRight, ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth)
+Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeStamp, ORBextractor* extractorLeft, ORBextractor* extractorRight, ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, const VecYolo& vYolo)
     :mpORBvocabulary(voc),mpORBextractorLeft(extractorLeft),mpORBextractorRight(extractorRight), mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth),
-     mpReferenceKF(static_cast<KeyFrame*>(NULL))
+     mpReferenceKF(static_cast<KeyFrame*>(NULL)),
+     mYolo(vYolo), NYolo(frame.NYolo)
 {
     // Frame ID
     mnId=nNextId++;
@@ -81,6 +84,7 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
     threadRight.join();
 
     N = mvKeys.size();
+    NYolo = mYolo.size();
 
     if(mvKeys.empty())
         return;
@@ -116,9 +120,10 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
     AssignFeaturesToGrid();
 }
 
-Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth)
+Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, const VecYolo& vYolo)
     :mpORBvocabulary(voc),mpORBextractorLeft(extractor),mpORBextractorRight(static_cast<ORBextractor*>(NULL)),
-     mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth)
+     mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth),
+     mYolo(vYolo), NYolo(frame.NYolo)
 {
     // Frame ID
     mnId=nNextId++;
@@ -136,6 +141,7 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
     ExtractORB(0,imGray);
 
     N = mvKeys.size();
+    NYolo = mYolo.size();
 
     if(mvKeys.empty())
         return;
@@ -171,9 +177,10 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
 }
 
 
-Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth)
+Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, const VecYolo& vYolo)
     :mpORBvocabulary(voc),mpORBextractorLeft(extractor),mpORBextractorRight(static_cast<ORBextractor*>(NULL)),
-     mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth)
+     mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth),
+     mYolo(vYolo)
 {
     // Frame ID
     mnId=nNextId++;
@@ -191,6 +198,7 @@ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extra
     ExtractORB(0,imGray);
 
     N = mvKeys.size();
+    NYolo = mYolo.size();
 
     if(mvKeys.empty())
         return;
@@ -225,14 +233,51 @@ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extra
     mb = mbf/fx;
 
     AssignFeaturesToGrid();
+    AssignORBToYOLO();
+}
+
+void Frame::AssignORBToYOLO()
+{
+    for(unsigned int i=0; i<FRAME_GRID_COLS;i++)
+    {
+        for (unsigned int j=0; j<FRAME_GRID_ROWS;j++)
+        {
+            //for every cell
+            const vector<size_t> fCell = mGrid[ix][iy];
+            const vector<size_t> yCell = cGrid[ix][iy];
+            if(fCell.empty() || yCell.empty())
+                continue;
+
+            for(size_t k=0, kend=yCell.size(); k<kend; k++)
+            {
+                // for every yolo keypoint
+                const tuple4D &tuY = mYolo[yCell[k]];
+                const cv::KeyPoint &kpY = tuY[0];
+                const cv::Point2f &pY = kpYOLO.pt();
+                int up = 
+
+                for(size_t r=0, rend=fCell.size(); r<rend; r++)
+                {
+                    // check if inside the yolo box
+                    const cv::KeyPoint &kp = mvKeys[fCell[r]];
+                    
+                }
+            }
+        }
+    }
 }
 
 void Frame::AssignFeaturesToGrid()
 {
     int nReserve = 0.5f*N/(FRAME_GRID_COLS*FRAME_GRID_ROWS);
     for(unsigned int i=0; i<FRAME_GRID_COLS;i++)
+    {
         for (unsigned int j=0; j<FRAME_GRID_ROWS;j++)
+        {
             mGrid[i][j].reserve(nReserve);
+            cGrid[i][j].reserve(nReserve);
+        }
+    }
 
     for(int i=0;i<N;i++)
     {
@@ -241,6 +286,14 @@ void Frame::AssignFeaturesToGrid()
         int nGridPosX, nGridPosY;
         if(PosInGrid(kp,nGridPosX,nGridPosY))
             mGrid[nGridPosX][nGridPosY].push_back(i);
+    }
+    for (int i = 0; i < NYolo; ++i)
+    {
+        const tuple4D &tu = mYolo[i];
+        const cv::KeyPoint &kpYOLO = tu[0];
+        int nGridPosX, nGridPosY;
+        if(PosInGrid(kpYOLO,nGridPosX,nGridPosY))
+            cGrid[nGridPosX][nGridPosY].push_back(i);
     }
 }
 
