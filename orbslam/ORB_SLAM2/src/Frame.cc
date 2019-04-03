@@ -48,12 +48,17 @@ Frame::Frame(const Frame &frame)
      mfScaleFactor(frame.mfScaleFactor), mfLogScaleFactor(frame.mfLogScaleFactor),
      mvScaleFactors(frame.mvScaleFactors), mvInvScaleFactors(frame.mvInvScaleFactors),
      mvLevelSigma2(frame.mvLevelSigma2), mvInvLevelSigma2(frame.mvInvLevelSigma2),
-     mYolo(frame.mYolo), NYolo(frame.NYolo), mvKeysCones(frame.mvKeysCones)
+     mYolo(frame.mYolo), mvKeysCones(frame.mvKeysCones)
 {
+    NYolo = frame.NYolo;
     for(int i=0;i<FRAME_GRID_COLS;i++)
+    {
         for(int j=0; j<FRAME_GRID_ROWS; j++)
+        {
             mGrid[i][j]=frame.mGrid[i][j];
             cGrid[i][j]=frame.cGrid[i][j];
+        }
+    }
 
     if(!frame.mTcw.empty())
         SetPose(frame.mTcw);
@@ -63,7 +68,7 @@ Frame::Frame(const Frame &frame)
 Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeStamp, ORBextractor* extractorLeft, ORBextractor* extractorRight, ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, const VecYolo& vYolo)
     :mpORBvocabulary(voc),mpORBextractorLeft(extractorLeft),mpORBextractorRight(extractorRight), mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth),
      mpReferenceKF(static_cast<KeyFrame*>(NULL)),
-     mYolo(vYolo), NYolo(frame.NYolo)
+     mYolo(vYolo)
 {
     // Frame ID
     mnId=nNextId++;
@@ -124,7 +129,7 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
 Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, const VecYolo& vYolo)
     :mpORBvocabulary(voc),mpORBextractorLeft(extractor),mpORBextractorRight(static_cast<ORBextractor*>(NULL)),
      mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth),
-     mYolo(vYolo), NYolo(frame.NYolo)
+     mYolo(vYolo)
 {
     // Frame ID
     mnId=nNextId++;
@@ -241,32 +246,37 @@ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extra
 
 void Frame::AssignORBToYOLO()
 {
+    // Assign 2D orb-feature to 2D Yolo bounding boxes
     for(unsigned int i=0; i<FRAME_GRID_COLS;i++)
     {
         for (unsigned int j=0; j<FRAME_GRID_ROWS;j++)
         {
             //for every cell
-            const vector<size_t> fCell = mGrid[ix][iy];
-            const vector<size_t> yCell = cGrid[ix][iy];
+            const vector<size_t> fCell = mGrid[i][j];
+            const vector<size_t> yCell = cGrid[i][j];
+            // cout << "empty\n";
             if(fCell.empty() || yCell.empty())
                 continue;
-
             for(size_t k=0, kend=yCell.size(); k<kend; k++)
             {
-                // for every yolo keypoint
+                // for every yolo tuple
                 const tupleCone &tuY = mYolo[yCell[k]];
-                const cv::Point2f &pY = tuY[0];
-                const cv::Size2i &sY = tuY[1];
-                int ConeType = tuY[2];
+                const cv::Point2f &pY = get<0>(tuY);
+                const cv::Size2i &sY = get<1>(tuY);
+                int ConeType = get<2>(tuY);
                 const cv::Rect recY(pY, sY); 
-
+                cout << "test";
                 for(size_t r=0, rend=fCell.size(); r<rend; r++)
                 {
                     // check if inside the yolo box
                     const cv::KeyPoint &kp = mvKeys[fCell[r]];
-                    const cv::Point2f &p = kp.pt();
-                    if(p.inside(recY))
+                    const cv::Point2f &p = kp.pt;
+                    cout << p << "asdfas\n";
+                    // cout << '\n';
+                    if(p.inside(recY)){
+                        cout << p << "this point inside the yolo box" << endl;
                         mvKeysCones[fCell[r]] = ConeType;
+                    }
                 }
             }
         }
@@ -294,10 +304,11 @@ void Frame::AssignFeaturesToGrid()
             mGrid[nGridPosX][nGridPosY].push_back(i);
     }
 
+    // Assign also the Yolo points to a cell grid
     for (int i = 0; i < NYolo; ++i)
     {
-        const tupleCone &tu = mYolo[i];
-        const cv::Point2f &kpYOLO = tu[0];
+        const tupleCone &tuY = mYolo[i];
+        const cv::Point2f &kpYOLO = get<0>(tuY);
         int nGridPosX, nGridPosY;
         if(ConeInGrid(kpYOLO,nGridPosX,nGridPosY))
             cGrid[nGridPosX][nGridPosY].push_back(i);

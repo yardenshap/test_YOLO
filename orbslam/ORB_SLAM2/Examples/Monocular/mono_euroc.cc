@@ -30,6 +30,9 @@
 
 using namespace std;
 
+typedef std::tuple<cv::Point2f,cv::Size2i,int> tupleCone; // pair of (kp(x,y),(width,height),type)
+typedef std::vector<tupleCone> VecYolo; // vector of (kp(x,y),(w,h))
+
 void LoadImages(const string &strImagePath, const string &strPathTimes,
                 vector<string> &vstrImages, vector<double> &vTimeStamps);
 
@@ -86,8 +89,14 @@ int main(int argc, char **argv)
         std::chrono::monotonic_clock::time_point t1 = std::chrono::monotonic_clock::now();
 #endif
 
+
+        cv::Point2f Ypoint(1,2);
+        cv::Size2i Ybox(4,4);
+        int Ytype = 1;
+        tupleCone testtuple(Ypoint, Ybox, Ytype);
+        VecYolo testvector{testtuple};
         // Pass the image to the SLAM system
-        SLAM.TrackMonocular(im,tframe);
+        SLAM.TrackMonocular(im,tframe,testvector);
 
 #ifdef COMPILEDWITHC11
         std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();

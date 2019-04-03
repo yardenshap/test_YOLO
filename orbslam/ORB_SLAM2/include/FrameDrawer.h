@@ -66,6 +66,9 @@ protected:
     Map* mpMap;
 
     std::mutex mMutex;
+
+    // Cone stuff
+    
 };
 
 } //namespace ORB_SLAM

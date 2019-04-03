@@ -89,8 +89,13 @@ void ImageGrabber::GrabImage(const sensor_msgs::ImageConstPtr& msg)
         ROS_ERROR("cv_bridge exception: %s", e.what());
         return;
     }
+    cv::Point2f Ypoint(1,2);
+    cv::Size2i Ybox(4,4);
+    int Ytype = 1;
+    tupleCone testtuple(Ypoint, Ybox, Ytype);
+    VecYolo testvector{testtuple};
 
-    mpSLAM->TrackMonocular(cv_ptr->image,cv_ptr->header.stamp.toSec(), yoloVec);
+    mpSLAM->TrackMonocular(cv_ptr->image,cv_ptr->header.stamp.toSec(), testvector);
 }
 
 

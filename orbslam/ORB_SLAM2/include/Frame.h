@@ -37,7 +37,7 @@ namespace ORB_SLAM2
 #define FRAME_GRID_ROWS 48
 #define FRAME_GRID_COLS 64
 
-typedef std::pair<cv::Point2f,cv::Size2i,int> tupleCone; // pair of (kp(x,y),(w,h))
+typedef std::tuple<cv::Point2f,cv::Size2i,int> tupleCone; // pair of (kp(x,y),(width,height),type)
 typedef std::vector<tupleCone> VecYolo; // vector of (kp(x,y),(w,h))
 
 class MapPoint;
@@ -206,7 +206,7 @@ public:
     int NYolo;
     // fill mvKeysCones with classification
     void AssignORBToYOLO();
-    bool ConeInGrid(const cv::Point2f &p, int &posX, int &posY)
+    bool ConeInGrid(const cv::Point2f &p, int &posX, int &posY);
 
 
 private:

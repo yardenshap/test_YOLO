@@ -36,6 +36,8 @@
 
 using namespace std;
 
+typedef std::tuple<cv::Point2f,cv::Size2i,int> tupleCone; // pair of (kp(x,y),(width,height),type)
+typedef std::vector<tupleCone> VecYolo; // vector of (kp(x,y),(w,h))
 
 ORB_SLAM2::ViewerAR viewerAR;
 bool bRGB = true;
@@ -150,7 +152,18 @@ void ImageGrabber::GrabImage(const sensor_msgs::ImageConstPtr& msg)
     }
     cv::Mat im = cv_ptr->image.clone();
     cv::Mat imu;
-    cv::Mat Tcw = mpSLAM->TrackMonocular(cv_ptr->image,cv_ptr->header.stamp.toSec());
+
+
+    cv::Point2f Ypoint(1,2);
+    cv::Size2i Ybox(4,4);
+    int Ytype = 1;
+    tupleCone testtuple(Ypoint, Ybox, Ytype);
+    VecYolo testvector{testtuple};
+    cv::Mat Tcw = mpSLAM->TrackMonocular(cv_ptr->image,cv_ptr->header.stamp.toSec(),testvector);
+
+
+
+
     int state = mpSLAM->GetTrackingState();
     vector<ORB_SLAM2::MapPoint*> vMPs = mpSLAM->GetTrackedMapPoints();
     vector<cv::KeyPoint> vKeys = mpSLAM->GetTrackedKeyPointsUn();
