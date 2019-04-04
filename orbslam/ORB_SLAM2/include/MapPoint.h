@@ -112,6 +112,11 @@ public:
 
     static std::mutex mGlobalMutex;
 
+public:
+    /*Cone stuff*/
+
+    int mnConeType; // defined in frame.h
+
 protected:    
 
      // Position in absolute coordinates

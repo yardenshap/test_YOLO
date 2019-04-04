@@ -433,8 +433,16 @@ void LocalMapping::CreateNewMapPoints()
             // Triangulation is succesfull
             MapPoint* pMP = new MapPoint(x3D,mpCurrentKeyFrame,mpMap);
 
+            // if both of the points is a cone, and the same type ->
+            // make the map point a cone with the same type
+            int mnConeType = mpCurrentKeyFrame->mvKeysCones[idx1];
+            if (mnConeType == pKF2->mvKeysCones[idx2] && mnConeType)
+                pMP->mnConeType = mnConeType;
+
             pMP->AddObservation(mpCurrentKeyFrame,idx1);            
             pMP->AddObservation(pKF2,idx2);
+
+            
 
             mpCurrentKeyFrame->AddMapPoint(pMP,idx1);
             pKF2->AddMapPoint(pMP,idx2);

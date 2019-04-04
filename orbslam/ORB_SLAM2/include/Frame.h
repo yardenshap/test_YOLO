@@ -39,7 +39,7 @@ namespace ORB_SLAM2
 
 typedef std::tuple<cv::Point2f,cv::Size2i,int> tupleCone; // pair of (kp(x,y),(width,height),type)
 typedef std::vector<tupleCone> VecYolo; // vector of (kp(x,y),(w,h))
-#define debug 0
+#define debug 1
 
 
 
@@ -205,8 +205,9 @@ public:
     // Number of Yolo points
     int NYolo;
     // fill mvKeysCones with classification
-    void AssignORBToYOLO();
     bool PosInGrid(const cv::Point2i &pt, int &posX, int &posY);
+private:
+    void AssignORBToYOLO();
 
 
 private:
