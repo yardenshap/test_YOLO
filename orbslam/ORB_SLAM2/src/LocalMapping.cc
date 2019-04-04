@@ -183,7 +183,11 @@ void LocalMapping::MapPointCulling()
     while(lit!=mlpRecentAddedMapPoints.end())
     {
         MapPoint* pMP = *lit;
-        if(pMP->isBad())
+        if(pMP->mnConeType)
+        {
+            lit++;
+        }
+        else if(pMP->isBad())
         {
             lit = mlpRecentAddedMapPoints.erase(lit);
         }
@@ -436,7 +440,7 @@ void LocalMapping::CreateNewMapPoints()
             // if both of the points is a cone, and the same type ->
             // make the map point a cone with the same type
             int mnConeType = mpCurrentKeyFrame->mvKeysCones[idx1];
-            if (mnConeType == pKF2->mvKeysCones[idx2] && mnConeType)
+            if (mnConeType && mnConeType == pKF2->mvKeysCones[idx2])
                 pMP->mnConeType = mnConeType;
 
             pMP->AddObservation(mpCurrentKeyFrame,idx1);            
