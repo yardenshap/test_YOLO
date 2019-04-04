@@ -83,13 +83,18 @@ int main(int argc, char **argv)
         std::chrono::monotonic_clock::time_point t1 = std::chrono::monotonic_clock::now();
 #endif
 
-        cv::Point2f Ypoint(1,2);
-        cv::Size2i Ybox(4,4);
+        cv::Point2f Ypoint(85,91);
+        cv::Size2i Ybox(100,100);
         int Ytype = 1;
         tupleCone testtuple(Ypoint, Ybox, Ytype);
-        VecYolo testvector{testtuple};
+        std::pair<tupleCone, std::pair<int,int>> testPair;
+        VecYolo testvector;
+        testvector.push_back(testtuple);
+        std::pair<int,int> numCones(1,0)
+        testPair.first = testvector;
+        testPair.second = numCones;
         // Pass the image to the SLAM system
-        SLAM.TrackMonocular(im,tframe,testvector);
+        SLAM.TrackMonocular(im,tframe,testPair);
 
 #ifdef COMPILEDWITHC11
         std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();

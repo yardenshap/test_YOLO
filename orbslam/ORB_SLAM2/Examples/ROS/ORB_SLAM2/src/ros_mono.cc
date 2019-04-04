@@ -89,13 +89,18 @@ void ImageGrabber::GrabImage(const sensor_msgs::ImageConstPtr& msg)
         ROS_ERROR("cv_bridge exception: %s", e.what());
         return;
     }
-    cv::Point2f Ypoint(1,2);
-    cv::Size2i Ybox(4,4);
+    cv::Point2f Ypoint(85,91);
+    cv::Size2i Ybox(100,100);
     int Ytype = 1;
     tupleCone testtuple(Ypoint, Ybox, Ytype);
-    VecYolo testvector{testtuple};
-
-    mpSLAM->TrackMonocular(cv_ptr->image,cv_ptr->header.stamp.toSec(), testvector);
+    std::pair<tupleCone, std::pair<int,int>> testPair;
+    VecYolo testvector;
+    testvector.push_back(testtuple);
+    std::pair<int,int> numCones(1,0)
+    testPair.first = testvector;
+    testPair.second = numCones;
+    // Pass the image to the SLAM system
+    mpSLAM->TrackMonocular(cv_ptr->image,cv_ptr->header.stamp.toSec(), testPair);
 }
 
 

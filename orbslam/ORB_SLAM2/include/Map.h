@@ -66,6 +66,11 @@ public:
     // This avoid that two points are created simultaneously in separate threads (id conflict)
     std::mutex mMutexPointCreation;
 
+    /*Cone stuff*/
+    // return vector with only cone points
+    vector<MapPoint*> GetAllConePoints();
+    std::set<MapPoint*> mspConePoints;
+
 protected:
     std::set<MapPoint*> mspMapPoints;
     std::set<KeyFrame*> mspKeyFrames;

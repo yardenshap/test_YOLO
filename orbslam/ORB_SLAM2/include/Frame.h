@@ -38,7 +38,8 @@ namespace ORB_SLAM2
 #define FRAME_GRID_COLS 64
 
 typedef std::tuple<cv::Point2f,cv::Size2i,int> tupleCone; // pair of (kp(x,y),(width,height),type)
-typedef std::vector<tupleCone> VecYolo; // vector of (kp(x,y),(w,h))
+typedef std::pair<std::vector<tupleCone>, std::pair<int,int>> VecYolo; // pair of -vector of (kp(x,y),(w,h))
+                                                                       //         -pair of the number of boxes (red, blue)
 #define debug 1
 
 

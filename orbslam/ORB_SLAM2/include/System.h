@@ -35,6 +35,7 @@
 #include "KeyFrameDatabase.h"
 #include "ORBVocabulary.h"
 #include "Viewer.h"
+#include "MapPublisher.h"
 
 namespace ORB_SLAM2
 {

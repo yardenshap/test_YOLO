@@ -37,6 +37,7 @@
 #include "Initializer.h"
 #include "MapDrawer.h"
 #include "System.h"
+#include "MapPublisher.h"
 
 #include <mutex>
 
@@ -214,6 +215,12 @@ protected:
     bool mbRGB;
 
     list<MapPoint*> mlpTemporalPoints;
+
+
+    /*Cone stuff*/
+    int nRED;
+    int nBLUE;
+    MapPublisher* mpPublish;
 };
 
 } //namespace ORB_SLAM

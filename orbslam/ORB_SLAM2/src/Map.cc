@@ -41,12 +41,16 @@ void Map::AddMapPoint(MapPoint *pMP)
 {
     unique_lock<mutex> lock(mMutexMap);
     mspMapPoints.insert(pMP);
+    if (pMP->mnConeType)
+        mspConePoints.insert(pMP);
 }
 
 void Map::EraseMapPoint(MapPoint *pMP)
 {
     unique_lock<mutex> lock(mMutexMap);
     mspMapPoints.erase(pMP);
+    if (pMP->mnConeType)
+        mspConePoints.erase(pMP);
 
     // TODO: This only erase the pointer.
     // Delete the MapPoint
@@ -91,6 +95,12 @@ vector<MapPoint*> Map::GetAllMapPoints()
     return vector<MapPoint*>(mspMapPoints.begin(),mspMapPoints.end());
 }
 
+vector<MapPoint*> Map::GetAllConePoints()
+{
+    unique_lock<mutex> lock(mMutexMap);
+    return vector<MapPoint*>(mspConePoints.begin(),mspConePoints.end());
+}
+
 long unsigned int Map::MapPointsInMap()
 {
     unique_lock<mutex> lock(mMutexMap);
@@ -120,10 +130,14 @@ void Map::clear()
     for(set<MapPoint*>::iterator sit=mspMapPoints.begin(), send=mspMapPoints.end(); sit!=send; sit++)
         delete *sit;
 
+    for(set<MapPoint*>::iterator sit=mspConePoints.begin(), send=mspConePoints.end(); sit!=send; sit++)
+        delete *sit;
+
     for(set<KeyFrame*>::iterator sit=mspKeyFrames.begin(), send=mspKeyFrames.end(); sit!=send; sit++)
         delete *sit;
 
     mspMapPoints.clear();
+    mspConePoints.clear();
     mspKeyFrames.clear();
     mnMaxKFid = 0;
     mvpReferenceMapPoints.clear();
