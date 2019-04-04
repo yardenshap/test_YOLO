@@ -84,7 +84,7 @@ int main(int argc, char **argv)
         std::chrono::monotonic_clock::time_point t1 = std::chrono::monotonic_clock::now();
 #endif
 
-        cv::Point2f Ypoint(100,200);
+        cv::Point2f Ypoint(85,91);
         cv::Size2i Ybox(100,100);
         int Ytype = 1;
         tupleCone testtuple(Ypoint, Ybox, Ytype);

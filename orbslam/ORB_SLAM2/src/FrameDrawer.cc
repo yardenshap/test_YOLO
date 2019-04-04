@@ -44,6 +44,7 @@ cv::Mat FrameDrawer::DrawFrame()
     vector<bool> vbVO, vbMap; // Tracked MapPoints in current frame
     int state; // Tracking state
 
+    vector<int> vCones;
     //Copy variables within scoped mutex
     {
         unique_lock<mutex> lock(mMutex);
@@ -55,18 +56,21 @@ cv::Mat FrameDrawer::DrawFrame()
 
         if(mState==Tracking::NOT_INITIALIZED)
         {
+            vCones = mvCones;
             vCurrentKeys = mvCurrentKeys;
             vIniKeys = mvIniKeys;
             vMatches = mvIniMatches;
         }
         else if(mState==Tracking::OK)
         {
+            vCones = mvCones;
             vCurrentKeys = mvCurrentKeys;
             vbVO = mvbVO;
             vbMap = mvbMap;
         }
         else if(mState==Tracking::LOST)
         {
+            vCones = mvCones;
             vCurrentKeys = mvCurrentKeys;
         }
     } // destroy scoped mutex -> release mutex
@@ -106,7 +110,10 @@ cv::Mat FrameDrawer::DrawFrame()
                 if(vbMap[i])
                 {
                     cv::rectangle(im,pt1,pt2,cv::Scalar(0,255,0));
-                    cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(0,255,0),-1);
+                    if(vCones[i] && debug)
+                        cv::circle(im,vCurrentKeys[i].pt,4,cv::Scalar(255,0,0),-1);
+                    else
+                        cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(0,255,0),-1);
                     mnTracked++;
                 }
                 else // This is match to a "visual odometry" MapPoint created in the last frame
@@ -170,6 +177,9 @@ void FrameDrawer::Update(Tracking *pTracker)
     pTracker->mImGray.copyTo(mIm);
     mvCurrentKeys=pTracker->mCurrentFrame.mvKeys;
     N = mvCurrentKeys.size();
+    // Cones drawer
+    mvCones=pTracker->mCurrentFrame.mvKeysCones;
+    NYolo = mvCones.size();
     mvbVO = vector<bool>(N,false);
     mvbMap = vector<bool>(N,false);
     mbOnlyTracking = pTracker->mbOnlyTracking;

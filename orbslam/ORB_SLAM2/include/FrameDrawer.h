@@ -68,6 +68,8 @@ protected:
     std::mutex mMutex;
 
     // Cone stuff
+    vector<int> mvCones;
+    int NYolo;
     
 };
 

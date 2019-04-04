@@ -56,7 +56,6 @@ Frame::Frame(const Frame &frame)
         for(int j=0; j<FRAME_GRID_ROWS; j++)
         {
             mGrid[i][j]=frame.mGrid[i][j];
-            cGrid[i][j]=frame.cGrid[i][j];
         }
     }
 
@@ -246,36 +245,43 @@ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extra
 
 void Frame::AssignORBToYOLO()
 {
-    // Assign 2D orb-feature to 2D Yolo bounding boxes
-    for(unsigned int i=0; i<FRAME_GRID_COLS;i++)
+    for (int i = 0; i < NYolo; ++i)
     {
-        for (unsigned int j=0; j<FRAME_GRID_ROWS;j++)
+        // for each yolo boinding box find the intersection
+        // with the mGrid cells
+
+        const tupleCone &tuY = mYolo[i];
+        const cv::Size2i &sY = get<1>(tuY);
+        const int &w = sY.width;
+        const int &h = sY.height;
+        // lu - left-up point of the rectangle
+        // rd - right-down
+        const cv::Point2f &lu = get<0>(tuY);
+        // const cv::Point2f &ld = lu + cv::Point2f(0, h);
+        // const cv::Point2f &ru = lu + cv::Point2f(w, 0);
+        const cv::Point2f &rd = lu + cv::Point2f(w, h);
+        const int &ConeType = get<2>(tuY);
+        const cv::Rect recY(lu, sY);
+        // l-left, u-up
+        int lCell, rCell, uCell, dCell;
+        if(PosInGrid(lu, lCell, uCell) && PosInGrid(rd, rCell, dCell))
         {
-            //for every cell
-            const vector<size_t> fCell = mGrid[i][j];
-            const vector<size_t> yCell = cGrid[i][j];
-            // cout << "empty\n";
-            if(fCell.empty() || yCell.empty())
-                continue;
-            for(size_t k=0, kend=yCell.size(); k<kend; k++)
+            // loop on the orb points in the cells
+            for(int i=lCell; i<=rCell;i++)
             {
-                // for every yolo tuple
-                const tupleCone &tuY = mYolo[yCell[k]];
-                const cv::Point2f &pY = get<0>(tuY);
-                const cv::Size2i &sY = get<1>(tuY);
-                int ConeType = get<2>(tuY);
-                const cv::Rect recY(pY, sY); 
-                cout << "test";
-                for(size_t r=0, rend=fCell.size(); r<rend; r++)
+                for (int j=uCell; j<=dCell;j++)
                 {
-                    // check if inside the yolo box
-                    const cv::KeyPoint &kp = mvKeys[fCell[r]];
-                    const cv::Point2f &p = kp.pt;
-                    cout << p << "asdfas\n";
-                    // cout << '\n';
-                    if(p.inside(recY)){
-                        cout << p << "this point inside the yolo box" << endl;
-                        mvKeysCones[fCell[r]] = ConeType;
+                    const vector<size_t> mCell = mGrid[i][j];
+                    if(mCell.empty())
+                        continue;
+                    for(size_t r=0, rend=mCell.size(); r<rend; r++)
+                    {
+                        // check if inside the yolo box
+                        const cv::KeyPoint &kp = mvKeys[mCell[r]];
+                        const cv::Point2f &p = kp.pt;
+                        if(p.inside(recY)){
+                            mvKeysCones[mCell[r]] = ConeType;
+                        }
                     }
                 }
             }
@@ -287,13 +293,8 @@ void Frame::AssignFeaturesToGrid()
 {
     int nReserve = 0.5f*N/(FRAME_GRID_COLS*FRAME_GRID_ROWS);
     for(unsigned int i=0; i<FRAME_GRID_COLS;i++)
-    {
         for (unsigned int j=0; j<FRAME_GRID_ROWS;j++)
-        {
             mGrid[i][j].reserve(nReserve);
-            cGrid[i][j].reserve(nReserve);
-        }
-    }
 
     for(int i=0;i<N;i++)
     {
@@ -302,16 +303,6 @@ void Frame::AssignFeaturesToGrid()
         int nGridPosX, nGridPosY;
         if(PosInGrid(kp,nGridPosX,nGridPosY))
             mGrid[nGridPosX][nGridPosY].push_back(i);
-    }
-
-    // Assign also the Yolo points to a cell grid
-    for (int i = 0; i < NYolo; ++i)
-    {
-        const tupleCone &tuY = mYolo[i];
-        const cv::Point2f &kpYOLO = get<0>(tuY);
-        int nGridPosX, nGridPosY;
-        if(ConeInGrid(kpYOLO,nGridPosX,nGridPosY))
-            cGrid[nGridPosX][nGridPosY].push_back(i);
     }
 }
 
@@ -450,10 +441,10 @@ vector<size_t> Frame::GetFeaturesInArea(const float &x, const float  &y, const f
     return vIndices;
 }
 
-bool Frame::ConeInGrid(const cv::Point2f &p, int &posX, int &posY)
+bool Frame::PosInGrid(const cv::KeyPoint &kp, int &posX, int &posY)
 {
-    posX = round((p.x-mnMinX)*mfGridElementWidthInv);
-    posY = round((p.y-mnMinY)*mfGridElementHeightInv);
+    posX = round((kp.pt.x-mnMinX)*mfGridElementWidthInv);
+    posY = round((kp.pt.y-mnMinY)*mfGridElementHeightInv);
 
     //Keypoint's coordinates are undistorted, which could cause to go out of the image
     if(posX<0 || posX>=FRAME_GRID_COLS || posY<0 || posY>=FRAME_GRID_ROWS)
@@ -462,12 +453,12 @@ bool Frame::ConeInGrid(const cv::Point2f &p, int &posX, int &posY)
     return true;
 }
 
-bool Frame::PosInGrid(const cv::KeyPoint &kp, int &posX, int &posY)
+bool Frame::PosInGrid(const cv::Point2i &pt, int &posX, int &posY)
 {
-    posX = round((kp.pt.x-mnMinX)*mfGridElementWidthInv);
-    posY = round((kp.pt.y-mnMinY)*mfGridElementHeightInv);
+    posX = round((pt.x-mnMinX)*mfGridElementWidthInv);
+    posY = round((pt.y-mnMinY)*mfGridElementHeightInv);
 
-    //Keypoint's coordinates are undistorted, which could cause to go out of the image
+    // safety check
     if(posX<0 || posX>=FRAME_GRID_COLS || posY<0 || posY>=FRAME_GRID_ROWS)
         return false;
 
