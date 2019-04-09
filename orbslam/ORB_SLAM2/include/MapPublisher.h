@@ -21,30 +21,32 @@ public:
 
 	void PublishPoints(int attempts, int redCones, int blueCones)
 	{
-		cv::Mat REDcenters, BLUEcenters;
-		if(MakeConeMap(attempts, REDcenters, BLUEcenters))
+		cv::Mat REDpoints, BLUEpoints;
+		if(MakeConeMap(attempts, redCones, blueCones, REDpoints, BLUEpoints))
 		{
-			// cout << BLUEcenters << "\n";
+			cout << "inside if" << "\n";
+			cout << "mappublisher" << REDpoints << endl;
+			cout << "mappublisher" << BLUEpoints << endl;
 		}
+		else
+			cout << "not inside if" << endl;
 	};
 
 private:
-	bool MakeConeMap(int attempts, int redCones, int blueCones, cv::Mat &REDcenters, cv::Mat &BLUEcenters)
+	bool MakeConeMap(int attempts, int redCones, int blueCones, cv::Mat &REDpoints, cv::Mat &BLUEpoints)
 	{
 		const int dim = 2; // TODO: maybe try with 3
 		const vector<MapPoint*> &vpCs = mpMap->GetAllConePoints();
 		int N = vpCs.size();
 
-		// make RED/BLUE points matrices
-		cv::Mat REDpoints;
-		cv::Mat BLUEpoints;
+		// number of points from the map
 		int NRED = 0, NBLUE = 0;
-		// for all cones -> get matrices of RED and BLUE
+		// for all cone -> get matrices of RED and BLUE
 		for(int i = 0; i < N; i++)
 		{
 			// postion in world
 			cv::Mat cPos = vpCs[i]->GetWorldPos();
-			float tmp[dim] = {cPos.at<float>(0, 1), cPos.at<float>(0, 2)};
+			float tmp[dim] = {cPos.at<float>(0, 1), cPos.at<float>(0, 2)};//TODO:reomve line
 			cv::Mat dimPos(1, dim, CV_32F, tmp);
 
 			if (vpCs[i]->mnConeType == 1) // RED
@@ -60,32 +62,12 @@ private:
 				NBLUE++;
 			}
 			else
+				// TODO:change to ignore
 				cout << "big problem, the map point given should be a cone\n";
 		}
+
 		if (!NRED && !NBLUE)
 			return false;
-
-		// kmeans
-		
-		// RED
-		if(NRED)
-		{
-			cv::Mat REDlabels;
-			cv::kmeans(REDpoints, redCones, REDlabels,
-						 cv::TermCriteria(cv::TermCriteria::EPS+cv::TermCriteria::COUNT, 10, 1.0),
-						 attempts, cv::KMEANS_PP_CENTERS, REDcenters);
-		}
-		cout << REDcenters<<endl<<endl;
-
-		// BLUE
-		if(NBLUE)
-		{
-			cv::Mat BLUElabels;
-			cv::kmeans(BLUEpoints, blueCones, BLUElabels,
-						 cv::TermCriteria(cv::TermCriteria::EPS+cv::TermCriteria::COUNT, 10, 1.0),
-						 attempts, cv::KMEANS_PP_CENTERS, BLUEcenters);
-		}
-
 		return true;
 	}
 

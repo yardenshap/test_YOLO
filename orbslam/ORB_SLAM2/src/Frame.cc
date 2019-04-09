@@ -63,10 +63,10 @@ Frame::Frame(const Frame &frame)
 }
 
 
-Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeStamp, ORBextractor* extractorLeft, ORBextractor* extractorRight, ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, const VecYolo& vYolo)
+Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeStamp, ORBextractor* extractorLeft, ORBextractor* extractorRight, ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, const PairYolo& mYolo)
     :mpORBvocabulary(voc),mpORBextractorLeft(extractorLeft),mpORBextractorRight(extractorRight), mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth),
      mpReferenceKF(static_cast<KeyFrame*>(NULL)),
-     mYolo(vYolo)
+     mYolo(mYolo)
 {
     // Frame ID
     mnId=nNextId++;
@@ -88,7 +88,8 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
 
     N = mvKeys.size();
     mvKeysCones.assign(N, 0);
-    NYolo = mYolo.size();
+    std::pair<int,int> tmpPair = mYolo.second;
+    NYolo = get<0>(tmpPair)+get<1>(tmpPair);
 
     if(mvKeys.empty())
         return;
@@ -124,10 +125,10 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
     AssignFeaturesToGrid();
 }
 
-Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, const VecYolo& vYolo)
+Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, const PairYolo& mYolo)
     :mpORBvocabulary(voc),mpORBextractorLeft(extractor),mpORBextractorRight(static_cast<ORBextractor*>(NULL)),
      mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth),
-     mYolo(vYolo)
+     mYolo(mYolo)
 {
     // Frame ID
     mnId=nNextId++;
@@ -146,7 +147,8 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
 
     N = mvKeys.size();
     mvKeysCones.assign(N, 0);
-    NYolo = mYolo.size();
+    std::pair<int,int> tmpPair = mYolo.second;
+    NYolo = get<0>(tmpPair)+get<1>(tmpPair);
 
     if(mvKeys.empty())
         return;
@@ -182,10 +184,10 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
 }
 
 
-Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, const VecYolo& vYolo)
+Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, const PairYolo& mYolo)
     :mpORBvocabulary(voc),mpORBextractorLeft(extractor),mpORBextractorRight(static_cast<ORBextractor*>(NULL)),
      mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth),
-     mYolo(vYolo)
+     mYolo(mYolo)
 {
     // Frame ID
     mnId=nNextId++;
@@ -204,7 +206,8 @@ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extra
 
     N = mvKeys.size();
     mvKeysCones.assign(N, 0);
-    NYolo = mYolo.size();
+    std::pair<int,int> tmpPair = mYolo.second;
+    NYolo = get<0>(tmpPair)+get<1>(tmpPair);
 
     if(mvKeys.empty())
         return;
@@ -244,12 +247,13 @@ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extra
 
 void Frame::AssignORBToYOLO()
 {
+    const VecYolo &vYolo = mYolo.first;
     for (int i = 0; i < NYolo; ++i)
     {
         // for each yolo boinding box find the intersection
         // with the mGrid cells
 
-        const tupleCone &tuY = mYolo[i];
+        const tupleCone &tuY = vYolo[i];
         const cv::Size2i &sY = get<1>(tuY);
         const int &w = sY.width;
         const int &h = sY.height;

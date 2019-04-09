@@ -30,8 +30,13 @@
 #include<opencv2/core/core.hpp>
 
 #include"../../../include/System.h"
-
 using namespace std;
+
+typedef std::tuple<cv::Point2f,cv::Size2i,int> tupleCone; // pair of (kp(x,y),(width,height),type)
+typedef std::vector<tupleCone> VecYolo; // pair of -vector of (kp(x,y),(w,h))
+typedef std::pair<VecYolo, std::pair<int,int>> PairYolo; // pair of -vector of (kp(x,y),(w,h))
+
+
 
 class ImageGrabber
 {
@@ -89,18 +94,19 @@ void ImageGrabber::GrabImage(const sensor_msgs::ImageConstPtr& msg)
         ROS_ERROR("cv_bridge exception: %s", e.what());
         return;
     }
+
     cv::Point2f Ypoint(85,91);
     cv::Size2i Ybox(100,100);
     int Ytype = 1;
     tupleCone testtuple(Ypoint, Ybox, Ytype);
-    std::pair<tupleCone, std::pair<int,int>> testPair;
-    VecYolo testvector;
+    std::vector<tupleCone> testvector;
     testvector.push_back(testtuple);
-    std::pair<int,int> numCones(1,0)
-    testPair.first = testvector;
-    testPair.second = numCones;
+    PairYolo testpair;
+    std::pair<int,int> numcones(1,0);
+    testpair.first = testvector;
+    testpair.second = numcones;
     // Pass the image to the SLAM system
-    mpSLAM->TrackMonocular(cv_ptr->image,cv_ptr->header.stamp.toSec(), testPair);
+    mpSLAM->TrackMonocular(cv_ptr->image,cv_ptr->header.stamp.toSec(), testpair);
 }
 
 

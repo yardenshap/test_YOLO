@@ -215,7 +215,7 @@ cv::Mat System::TrackRGBD(const cv::Mat &im, const cv::Mat &depthmap, const doub
     return Tcw;
 }
 
-cv::Mat System::TrackMonocular(const cv::Mat &im, const double &timestamp, const VecYolo &vYolo)
+cv::Mat System::TrackMonocular(const cv::Mat &im, const double &timestamp, const PairYolo &vYolo)
 {
     if(mSensor!=MONOCULAR)
     {

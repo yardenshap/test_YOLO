@@ -183,6 +183,7 @@ void LocalMapping::MapPointCulling()
     while(lit!=mlpRecentAddedMapPoints.end())
     {
         MapPoint* pMP = *lit;
+        // dont cull if cone
         if(pMP->mnConeType)
         {
             lit++;
@@ -442,6 +443,11 @@ void LocalMapping::CreateNewMapPoints()
             int mnConeType = mpCurrentKeyFrame->mvKeysCones[idx1];
             if (mnConeType && mnConeType == pKF2->mvKeysCones[idx2])
                 pMP->mnConeType = mnConeType;
+
+            // TODO:
+            // prone to alot of false positives, which are 
+            // ouliers in the kmeans performed later,
+            // cull mappoints if alot of other frames says something else
 
             pMP->AddObservation(mpCurrentKeyFrame,idx1);            
             pMP->AddObservation(pKF2,idx2);

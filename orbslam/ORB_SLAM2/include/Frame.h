@@ -38,7 +38,8 @@ namespace ORB_SLAM2
 #define FRAME_GRID_COLS 64
 
 typedef std::tuple<cv::Point2f,cv::Size2i,int> tupleCone; // pair of (kp(x,y),(width,height),type)
-typedef std::pair<std::vector<tupleCone>, std::pair<int,int>> VecYolo; // pair of -vector of (kp(x,y),(w,h))
+typedef std::vector<tupleCone> VecYolo; // pair of -vector of (kp(x,y),(w,h))
+typedef std::pair<VecYolo, std::pair<int,int>> PairYolo; // pair of -vector of (kp(x,y),(w,h))
                                                                        //         -pair of the number of boxes (red, blue)
 #define debug 1
 
@@ -56,13 +57,13 @@ public:
     Frame(const Frame &frame);
 
     // Constructor for stereo cameras.
-    Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeStamp, ORBextractor* extractorLeft, ORBextractor* extractorRight, ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, const VecYolo& vYolo);
+    Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeStamp, ORBextractor* extractorLeft, ORBextractor* extractorRight, ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, const PairYolo& mYolo);
 
     // Constructor for RGB-D cameras.
-    Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, const VecYolo& vYolo);
+    Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, const PairYolo& mYolo);
 
     // Constructor for Monocular cameras.
-    Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, const VecYolo& vYolo);
+    Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, const PairYolo& mYolo);
 
     // Extract ORB on the image. 0 for left image and 1 for right image.
     void ExtractORB(int flag, const cv::Mat &im);
@@ -200,7 +201,8 @@ public:
     */
 
     // Yolo output
-    VecYolo mYolo;
+    PairYolo mYolo;
+    
     // Corresponds to mvKeys, if cone -> what color
     std::vector<int> mvKeysCones;
     // Number of Yolo points
